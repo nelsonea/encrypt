@@ -1,0 +1,73 @@
+/* short program using input and output in C
+   to read in and encrypt a text file */
+// to test: ./encrypt abcd1234 test1 output1 0
+// 0 at the end for encrypt and 1 for decrypt
+
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <string.h>
+#include <stdlib.h>
+#include <rpc/des_crypt.h>
+#define bufferSize 8
+
+
+
+char buffer[bufferSize];
+
+
+int main(int argc, char* argv[]) {
+  if (argc != 5) {
+    fprintf(stdout, "Encrypt must take 4 arguments\n");
+    exit(-1);
+   }
+  char* key = argv[1];
+  if (strlen(key) != 8) {
+    fprintf(stdout, "Key must be 8 characters\n");
+    exit(-1);}
+  int mode = strtol(argv[4], NULL, 10);
+  if (mode != 0 && mode != 1) {
+    fprintf(stdout, "Mode must be either 0 or 1\n");
+    exit(-1); }
+  char* inputFile = argv[2];
+  char* outputFile = argv[3];
+
+  int readfd = open(inputFile, O_RDONLY);
+  if (readfd == -1) {
+    printf("Error opening read file\n");
+    exit(-1); }
+        int x = read(readfd, buffer, bufferSize);
+        int writefd = open(outputFile, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR);
+
+  printf("Before setparity: %s\n", key);
+  des_setparity(key);
+
+  while (x != 0) {
+    if ( (x % 8) != 0){
+      for (; (x % 8) != 0 ; x++){
+        buffer[x] = ' ';
+      }
+    }
+    if (writefd == -1) {
+       printf("Error opening read file\n");
+       exit(-1); }
+    if (mode == 0) {
+      ecb_crypt(key, buffer, x, DES_ENCRYPT);
+      write(writefd, buffer, x); }
+    if (mode == 1) {
+      ecb_crypt(key, buffer, x, DES_DECRYPT);
+      write(writefd, buffer, x); }
+                if (x == 0) {
+                        break;
+                }
+                x = read(readfd, buffer, bufferSize);
+    if (x == -1) {
+      break;
+    }
+        }
+
+return 0;
+
+}
